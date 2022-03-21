@@ -19,7 +19,7 @@ public struct Optional<T> where T : struct
     {
         get
         {
-            return this.value.Value;
+            return this.value.GetValueOrDefault();
         }
 
         set

@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ParserTools.Optionals;
 
-
+using static ArithmeticTypes;
 public enum ArithmeticTypes
 {
     Number,
@@ -20,7 +20,9 @@ public enum ArithmeticTypes
 }
 
 
-public class ArithmeticLexer : Lexer<ArithmeticTypes>
+
+
+public class ArithmeticLexer : Lexer
 {
     public ArithmeticLexer(string source) : base(source)
     {
@@ -61,31 +63,30 @@ public class ArithmeticLexer : Lexer<ArithmeticTypes>
 
                 // Parenthesis
                 case '(':
-                    FinalizeToken(ArithmeticTypes.LeftParenthesis);
+                    FinalizeToken((int)LeftParenthesis);
                     break;
 
                 case ')':
-                    FinalizeToken(ArithmeticTypes.RightParenthesis);
+                    FinalizeToken((int)RightParenthesis);
                     break;
 
 
                 // Operators:
 
                 case '+':
-                case '-':
-                case '*':
-                case '/':
-
-                    var type = ch.Value switch
-                    {
-                        '+' => ArithmeticTypes.Addition,
-                        '-' => ArithmeticTypes.Subtraction,
-                        '*' => ArithmeticTypes.Multiplication,
-                        '/' => ArithmeticTypes.Division
-                    };
-
-                    FinalizeToken(type);
+                    FinalizeToken((int)Addition);
                     break;
+                case '-':
+                    FinalizeToken((int)Subtraction);
+                    break;
+                case '*':
+                    FinalizeToken((int)Multiplication);
+                    break;
+                case '/':
+                    FinalizeToken((int)Division);
+                    break;
+
+
 
                 default:
 
@@ -97,5 +98,95 @@ public class ArithmeticLexer : Lexer<ArithmeticTypes>
 
         return TokenBuffer.ToArray();
     }
+}
+
+
+
+
+
+
+
+
+
+
+
+public class ParsingException : Exception
+{
+
+}
+
+
+
+
+
+public class ArithmeticParser : Scanner<ArithmeticLexer.Token>
+{
+    public class Node
+    {
+        ArithmeticLexer.Token token;
+        Node? left;
+        Node? right;
+
+        public Node(ArithmeticLexer.Token token, Node? left = null, Node? right = null)
+        {
+            this.token = token;
+            this.left = left;
+            this.right = right;
+        }
+    }
+
+
+    public ArithmeticParser(IEnumerable<ArithmeticLexer.Token> source) : base(source)
+    {
+    }
+
+
+    Result<Node, ParsingException> Parse()
+    {
+        try
+        {
+            return Result<ArithmeticParser.Node, ParsingException>.Create (Expression());
+        } 
+        
+        catch (ParsingException e)
+        {
+            return Result<ArithmeticParser.Node, ParsingException>.Create(e);
+        }
+        
+    }
+
+
+    Node Expression() => Term();
+
+    Node Term()
+    {
+        Node root = Factor();
+
+        while(Peek().Value.Type == (int)Addition || Peek().Value.Type == (int)Subtraction)
+        {
+             root = new Node(Pop().Value, root, Factor());
+        }
+
+        return root;
+    }
+
+    Node Factor()
+    {
+        Node root = Primary();
+
+        while (Peek().Value.Type == (int)Multiplication || Peek().Value.Type == (int)Division)
+        {
+            root = new Node(Pop().Value, root, Primary());
+        }
+
+        return root;
+    }
+
+    Node Primary()
+    {
+        if(Peek().Value.Type == (int)Number) return new Node(Pop().Value);
+        throw new Exception("Expected expression");
+    }
+
 }
 

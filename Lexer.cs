@@ -38,21 +38,21 @@ public class LexemeScanner : Scanner<char>
 
 
 
-public abstract class Lexer<TokenEnum> : LexemeScanner
+public abstract class Lexer: LexemeScanner 
 {
     public struct Token
     {
-        TokenEnum type;
-        ReadOnlyMemory<char> content;
-        int line;
-        int column;
+        public int Type { get; }
+        public ReadOnlyMemory<char> Content { get; }
+        public int Line { get; }
+        public int Column { get; }
 
-        public Token(TokenEnum type, ReadOnlyMemory<char> content, int line, int column)
+        public Token(int type, ReadOnlyMemory<char> content, int line, int column)
         {
-            this.type = type;
-            this.content = content;
-            this.line = line;
-            this.column = column;
+            Type = type;
+            Content = content;
+            Line = line;
+            Column = column;
         }
     }
 
@@ -93,7 +93,7 @@ public abstract class Lexer<TokenEnum> : LexemeScanner
         return base.Pop().IfNotNull((o) => columnCount++);
     }
 
-    public Token FinalizeToken(TokenEnum type)
+    public Token FinalizeToken(int type) 
     {
         Token newToken = new(type, ((string)buffer).AsMemory(scanStart, scanOffset), lineCount, columnCount);
         TokenBuffer.Add(newToken);

@@ -28,7 +28,7 @@ public class ArithmeticLexer : Lexer<ArithmeticTypes>
 
 
    
-    protected override Token[] Lex_()
+    protected override Token[] RunLexer()
     {
         Reset();
 

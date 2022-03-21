@@ -66,7 +66,7 @@ public abstract class Lexer<TokenEnum> : LexemeScanner
     protected List<Token> TokenBuffer{ get { return tokenBuffer ??= new List<Token>(); } }
 
 
-    public Lexer(string source) : base(source)
+    public Lexer(IEnumerable<char> source) : base(source)
     {
     }
 
@@ -100,14 +100,14 @@ public abstract class Lexer<TokenEnum> : LexemeScanner
         return newToken;
     }
 
-    private void SetNewSource(string source) => this.buffer = source;
+   
 
 
     public Result<Token[], LexingError> Lex()
     {
         try
         {
-            return Result<Token[], LexingError>.Create(Lex_());
+            return Result<Token[], LexingError>.Create(RunLexer());
         }
         catch (LexingError e)
         {
@@ -115,15 +115,17 @@ public abstract class Lexer<TokenEnum> : LexemeScanner
         }
     }
 
-    public Result<Token[], LexingError> Lex(string source)
+    public Result<Token[], LexingError> Lex(IEnumerable<char> source)
     {
-        SetNewSource(source);
+        this.buffer = source;
         return Lex();
     }
 
 
 
-    protected abstract Token[] Lex_();
+
+
+    protected abstract Token[] RunLexer();
 }
 
 

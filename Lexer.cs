@@ -38,29 +38,28 @@ public class LexemeScanner : Scanner<char>
 
 
 
+
+
+public struct Token
+{
+    public int Type { get; }
+    public ReadOnlyMemory<char> Content { get; }
+    public int Line { get; }
+    public int Column { get; }
+
+    public Token(int type, ReadOnlyMemory<char> content, int line, int column)
+    {
+        Type = type;
+        Content = content;
+        Line = line;
+        Column = column;
+    }
+}
+
+
 public abstract class Lexer: LexemeScanner 
 {
-    public struct Token
-    {
-        public int Type { get; }
-        public ReadOnlyMemory<char> Content { get; }
-        public int Line { get; }
-        public int Column { get; }
-
-        public Token(int type, ReadOnlyMemory<char> content, int line, int column)
-        {
-            Type = type;
-            Content = content;
-            Line = line;
-            Column = column;
-        }
-    }
-
-
-
-
-
-
+ 
 
     private List<Token>? tokenBuffer;
     protected List<Token> TokenBuffer{ get { return tokenBuffer ??= new List<Token>(); } }
@@ -71,7 +70,7 @@ public abstract class Lexer: LexemeScanner
     }
 
 
-    public void BeginScan() => scanStart = 0;
+    public void NewScan() => scanStart = scanOffset;
     public void NewLine()
     {
         columnCount = 0;
@@ -90,13 +89,18 @@ public abstract class Lexer: LexemeScanner
 
     public override Optional<char> Pop()
     {
-        return base.Pop().IfNotNull((o) => columnCount++);
+        var ch = Peek();
+        if (ch) scanOffset++;
+        return ch;
     }
 
     public Token FinalizeToken(int type) 
     {
-        Token newToken = new(type, ((string)buffer).AsMemory(scanStart, scanOffset), lineCount, columnCount);
+      
+        Token newToken = new(type, ((string)buffer).AsMemory(scanStart, scanOffset -scanStart), lineCount, columnCount);
         TokenBuffer.Add(newToken);
+        NewScan();
+
         return newToken;
     }
 

@@ -14,7 +14,7 @@ public class Scanner<T> where T : struct
 
     public virtual void Reset() => scanOffset = 0;
 
-    public bool IsAtEnd() => scanOffset >= buffer?.Count();
+    public bool IsAtEnd() =>  scanOffset >= buffer?.Count();
 
     public Optional<T> Peek() => IsAtEnd() ? null : buffer?.ElementAt(scanOffset);
 

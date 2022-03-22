@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting.Logging;
 using ParserTools.Optionals;
 
 using static ArithmeticTypes;
@@ -29,14 +30,14 @@ public class ArithmeticLexer : Lexer
     }
 
 
-   
+
     protected override Token[] RunLexer()
     {
         Reset();
 
         while (Peek())
         {
-            BeginScan();
+            NewScan();
             var ch = Pop();
 
             switch (ch.Value)
@@ -57,6 +58,8 @@ public class ArithmeticLexer : Lexer
                     while (Char.IsDigit(Peek().Value)) Pop();
                     if (Peek().Value == '.') Pop();
                     while (Char.IsDigit(Peek().Value)) Pop();
+
+                    FinalizeToken((int)Number);
 
                     break;
 
@@ -91,10 +94,12 @@ public class ArithmeticLexer : Lexer
                 default:
 
                     throw new LexingError("Unknown symbol", this);
-                    
+
 
             }
         }
+
+        Logger.LogMessage("Token length: " + TokenBuffer.Count);
 
         return TokenBuffer.ToArray();
     }
@@ -119,52 +124,103 @@ public class ParsingException : Exception
 
 
 
-public class ArithmeticParser : Scanner<ArithmeticLexer.Token>
+public class ArithmeticParser : Scanner<Token>
 {
     public class Node
     {
-        ArithmeticLexer.Token token;
+        Token token;
         Node? left;
         Node? right;
 
-        public Node(ArithmeticLexer.Token token, Node? left = null, Node? right = null)
+        public Node(Token token, Node? left = null, Node? right = null)
         {
             this.token = token;
             this.left = left;
             this.right = right;
         }
+
+        static Stack<int> _stack;
+        static public Stack<int> NumberStack { get { return _stack ?? new Stack<int>(); } }
+        public static void Calculate(Node n)
+        {
+
+
+            if (n is null) return;
+            if (n.left is not null) Calculate(n.left);
+            if (n.right is not null) Calculate(n.right);
+
+            switch (n.token.Type)
+            {
+                case (int)Number:
+                    NumberStack.Push(int.Parse(n.token.Content.Span));
+                    break;
+
+                case (int)Addition:
+                    {
+                        int v1 = NumberStack.Pop();
+                        int v2 = NumberStack.Pop();
+                        NumberStack.Push(v2 + v1);
+                    }
+                    break;
+                case (int)Subtraction:
+                    {
+                        int v1 = NumberStack.Pop();
+                        int v2 = NumberStack.Pop();
+                        NumberStack.Push(v2 - v1);
+                    }
+                    break;
+                case (int)Multiplication:
+                    {
+                        int v1 = NumberStack.Pop();
+                        int v2 = NumberStack.Pop();
+                        NumberStack.Push(v2 * v1);
+                    }
+                    break;
+                case (int)Division:
+                    {
+                        int v1 = NumberStack.Pop();
+                        int v2 = NumberStack.Pop();
+                        NumberStack.Push(v2 / v1);
+                    }
+                    break;
+
+            }
+        }
     }
 
 
-    public ArithmeticParser(IEnumerable<ArithmeticLexer.Token> source) : base(source)
+    public ArithmeticParser(IEnumerable<Token> source) : base(source)
     {
     }
 
 
-    Result<Node, ParsingException> Parse()
+    public Result<Node, ParsingException> Parse()
     {
         try
         {
-            return Result<ArithmeticParser.Node, ParsingException>.Create (Expression());
-        } 
-        
+            return Result<ArithmeticParser.Node, ParsingException>.Create(Expression());
+        }
+
         catch (ParsingException e)
         {
             return Result<ArithmeticParser.Node, ParsingException>.Create(e);
         }
-        
+
     }
 
 
-    Node Expression() => Term();
+    Node Expression()
+    {
+       return Term();
+    }
 
     Node Term()
     {
         Node root = Factor();
 
-        while(Peek().Value.Type == (int)Addition || Peek().Value.Type == (int)Subtraction)
+        while (Peek().Value.Type == (int)Addition || Peek().Value.Type == (int)Subtraction)
         {
-             root = new Node(Pop().Value, root, Factor());
+            root = new Node(Pop().Value, root, Factor());
         }
 
         return root;
@@ -184,7 +240,7 @@ public class ArithmeticParser : Scanner<ArithmeticLexer.Token>
 
     Node Primary()
     {
-        if(Peek().Value.Type == (int)Number) return new Node(Pop().Value);
+        if (Peek().Value.Type == (int)Number) return new Node(Pop().Value);
         throw new Exception("Expected expression");
     }
 
